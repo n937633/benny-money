@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benny的零用錢小金庫 🚒</title>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Noto+Sans+TC:wght@700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --brown:#5C4636; --bg:#FAF5ED; --green-bg:#E2F0D9; --red-bg:#FCE4D6; }
+body {
+  font-family:'Architects Daughter','Noto Sans TC',sans-serif;
+  background:#F0E8D8;
+  min-height:100vh;
+  display:flex; justify-content:center; align-items:flex-start;
+  padding:12px 0 40px;
+}
+/* 圓體數字專用 */
+.num { font-family:'Nunito','Noto Sans TC',sans-serif; font-weight:900; }
+
+.app {
+  width:100%; max-width:420px;
+  background:var(--bg);
+  border:4px solid var(--brown);
+  border-radius:32px;
+  box-shadow:7px 7px 0 var(--brown);
+  overflow:hidden;
+  margin:0 12px;
+}
+
+/* HEADER */
+.header { background:#E53935; border-bottom:4px solid var(--brown); padding:16px 16px 0; position:relative; overflow:hidden; }
+.header::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(-45deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px); }
+.car-fleet { display:flex; justify-content:space-around; align-items:center; padding:4px 8px 10px; position:relative; z-index:1; }
+.car-fleet span { font-size:32px; transition:all 0.5s ease; line-height:1; }
+.car-locked { filter:grayscale(100%) opacity(25%); }
+.car-unlocked { filter:none; }
+@keyframes carPop { 0%{transform:scale(0.7)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.header-title { font-size:22px; color:#fff; text-align:center; font-weight:900; text-shadow:3px 3px 0 rgba(0,0,0,0.2); line-height:1.2; position:relative; z-index:1; padding-bottom:4px; }
+.road { background:#546E7A; height:46px; position:relative; overflow:hidden; display:flex; align-items:center; }
+.road-lines { display:flex; gap:16px; padding-left:8px; align-items:center; flex-shrink:0; }
+.road-line { width:28px; height:5px; background:#FFF176; border-radius:3px; flex-shrink:0; }
+.road-car { position:absolute; right:10px; bottom:2px; font-size:28px; transition:all 0.4s; }
+
+/* SYNC STATUS */
+.sync-bar { background:#EDE0CE; border-bottom:2px solid var(--brown); padding:6px 14px; display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:700; color:#8A7360; }
+.sync-dot { width:8px; height:8px; border-radius:50%; background:#aaa; display:inline-block; margin-right:5px; }
+.sync-dot.ok { background:#4CAF50; }
+.sync-dot.syncing { background:#FF9800; }
+.sync-dot.err { background:#F44336; }
+
+/* TABS */
+.tabs { display:flex; gap:8px; padding:10px 12px; background:#EDE0CE; border-bottom:3px solid var(--brown); position:sticky; top:0; z-index:10; }
+.tab-btn { flex:1; padding:11px 8px; border-radius:16px; font-family:inherit; font-size:14px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s; border:3px solid transparent; }
+.tab-btn:active { transform:translate(2px,2px); }
+.tab-active-tasks { background:#FFDFD3; color:#703A2E; border-color:var(--brown); box-shadow:3px 3px 0 var(--brown); }
+.tab-active-wallet { background:#D2EBD4; color:#2F4F1A; border-color:var(--brown); box-shadow:3px 3px 0 var(--brown); }
+.tab-inactive { background:transparent; color:#9E8A78; border-color:transparent; }
+.tab-active-cal { background:#D1ECF1; color:#0C3547; border-color:var(--brown); box-shadow:3px 3px 0 var(--brown); }
+
+/* CONTENT */
+.content { padding:14px 12px; }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* REPORT CARD */
+.report-card { background:#FCF4DF; border:3px solid var(--brown); border-radius:18px; padding:14px; box-shadow:4px 4px 0 var(--brown); display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+.report-label { font-size:12px; font-weight:900; color:#856404; display:flex; align-items:center; gap:4px; }
+.report-hint { font-size:10px; color:#9E7D2B; margin-top:3px; font-weight:700; }
+.report-btn { background:#FFF0CD; color:#634A15; border:2.5px solid var(--brown); border-radius:14px; padding:10px 14px; font-family:inherit; font-size:12px; font-weight:900; cursor:pointer; box-shadow:2px 2px 0 var(--brown); flex-shrink:0; transition:all 0.1s; }
+.report-btn:active { transform:translate(2px,2px); box-shadow:none; }
+
+/* SECTION TITLE */
+.section-title { font-size:15px; font-weight:900; color:var(--brown); display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+
+/* TASK CARD */
+.task-card { background:white; border:3px solid var(--brown); border-radius:18px; padding:14px; box-shadow:4px 4px 0 var(--brown); margin-bottom:12px; }
+.task-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+.task-tag { font-size:12px; font-weight:900; padding:3px 10px; border-radius:10px; border:2px solid; display:inline-flex; align-items:center; gap:4px; }
+.task-reward { font-size:12px; font-weight:900; color:#ED7D31; background:#FFF0EE; border:2px dashed #ED7D31; border-radius:20px; padding:2px 10px; flex-shrink:0; }
+.task-desc { font-size:11px; color:#9E8A78; margin-bottom:10px; font-weight:700; }
+.day-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.day-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 2px; border-radius:10px; border:2px solid #E2DDD5; background:white; cursor:pointer; font-family:inherit; font-weight:900; font-size:11px; color:#9E8A78; transition:all 0.12s; min-height:44px; }
+.day-btn:active { transform:scale(0.9); }
+.day-btn.checked { background:var(--green-bg); color:#2E7D32; border-color:#70AD47; }
+.day-dot { width:14px; height:14px; border-radius:50%; border:1.5px solid #D0CAC3; background:white; margin-top:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; color:#2E7D32; }
+.day-btn.checked .day-dot { background:#2E7D32; border-color:#2E7D32; color:white; }
+
+/* MONTHLY */
+.monthly-card { background:white; border:3px solid var(--brown); border-radius:18px; padding:14px; box-shadow:4px 4px 0 var(--brown); display:flex; align-items:center; gap:12px; cursor:pointer; transition:background 0.2s; margin-bottom:12px; }
+.monthly-card.done { background:#F2EEFF; }
+.monthly-info { flex:1; }
+.monthly-tag { font-size:10px; background:#E3D9FC; color:#5536B8; border:1.5px solid #5536B8; border-radius:20px; padding:2px 8px; font-weight:900; display:inline-block; margin-bottom:4px; }
+.monthly-title { font-size:13px; font-weight:900; color:var(--brown); }
+.monthly-right { display:flex; align-items:center; gap:8px; }
+.monthly-reward { font-size:12px; font-weight:900; color:#5536B8; background:#F2EEFF; border:2px dashed #5536B8; border-radius:8px; padding:3px 8px; }
+.monthly-check { width:26px; height:26px; border-radius:50%; border:2.5px solid var(--brown); background:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:white; box-shadow:1px 1px 0 var(--brown); transition:all 0.2s; }
+.monthly-check.done { background:#5536B8; border-color:#5536B8; }
+
+/* BALANCE CARD */
+.balance-card { background:var(--green-bg); border:4px solid var(--brown); border-radius:24px; padding:18px; box-shadow:6px 6px 0 var(--brown); text-align:center; margin-bottom:12px; position:relative; overflow:hidden; }
+.balance-card::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(-45deg,transparent,transparent 10px,rgba(255,255,255,0.15) 10px,rgba(255,255,255,0.15) 11px); border-radius:20px; pointer-events:none; }
+.balance-label { font-size:12px; font-weight:900; color:#385723; letter-spacing:1px; position:relative; }
+.balance-num { font-family:'Nunito','Noto Sans TC',sans-serif; font-size:60px; font-weight:900; color:#1B4A0A; line-height:1; position:relative; display:flex; align-items:baseline; justify-content:center; gap:4px; }
+.balance-num sup { font-size:26px; font-family:'Nunito',sans-serif; font-weight:900; }
+
+.goal-box { background:rgba(255,255,255,0.7); border:2.5px solid var(--brown); border-radius:14px; padding:10px 12px; margin-top:12px; text-align:left; position:relative; }
+.goal-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:11px; font-weight:900; color:#385723; }
+.goal-input { background:transparent; border:none; border-bottom:1.5px solid #385723; outline:none; font-family:inherit; font-size:11px; font-weight:900; color:#385723; width:80px; }
+.goal-num-input { background:transparent; border:none; border-bottom:1.5px solid #385723; outline:none; font-family:'Nunito',sans-serif; font-size:11px; font-weight:900; color:#385723; width:40px; text-align:center; }
+.progress-track { width:100%; background:#ccc; border-radius:20px; height:14px; overflow:hidden; border:1.5px solid var(--brown); }
+.progress-bar { height:100%; background:linear-gradient(90deg,#52D16C,#27AE60); border-radius:20px; transition:width 0.5s ease; }
+.goal-status { font-size:10px; font-weight:700; color:#555; text-align:right; margin-top:4px; }
+
+.mini-stats { display:flex; gap:10px; margin-bottom:12px; }
+.mini-stat { flex:1; border:2.5px solid var(--brown); border-radius:14px; padding:10px 12px; box-shadow:3px 3px 0 var(--brown); text-align:center; }
+.mini-stat.income { background:#F1F8E9; }
+.mini-stat.expense { background:#FCE4EC; }
+.mini-stat-label { font-size:11px; font-weight:900; color:#777; margin-bottom:2px; }
+.mini-stat-val { font-family:'Nunito','Noto Sans TC',sans-serif; font-size:22px; font-weight:900; }
+.mini-stat.income .mini-stat-val { color:#2E7D32; }
+.mini-stat.expense .mini-stat-val { color:#C62828; }
+
+/* FORM */
+.form-card { background:white; border:3px solid var(--brown); border-radius:20px; padding:16px; box-shadow:4px 4px 0 var(--brown); margin-bottom:12px; }
+.field-label { font-size:12px; font-weight:900; color:var(--brown); display:block; margin-bottom:5px; }
+.field-wrap { display:block; width:100%; overflow:hidden; margin-bottom:13px; }
+.crayon-input { -webkit-appearance:none; appearance:none; display:block; width:100%; max-width:100%; border:2.5px solid var(--brown); border-radius:12px; padding:11px 14px; font-size:15px; font-family:'Architects Daughter','Noto Sans TC',sans-serif; font-weight:700; color:#333; background:#FFFDE7; outline:none; box-shadow:3px 3px 0 #E0D4C0; }
+.crayon-input:focus { border-color:#E53935; background:#fff; box-shadow:3px 3px 0 #FFCDD2; }
+/* number inputs use Nunito */
+input[type="number"].crayon-input { font-family:'Nunito','Noto Sans TC',sans-serif; font-weight:800; }
+
+.btn-row { display:flex; gap:10px; }
+.crayon-btn { flex:1; border:3px solid var(--brown); border-radius:14px; padding:14px 8px; font-size:14px; font-family:inherit; font-weight:900; cursor:pointer; transition:all 0.1s; }
+.crayon-btn:active { transform:translate(3px,3px); box-shadow:none !important; }
+.btn-income { background:#C8E6C9; color:#1B5E20; box-shadow:4px 4px 0 #1B5E20; }
+.btn-expense { background:#FFCDD2; color:#B71C1C; box-shadow:4px 4px 0 #B71C1C; }
+
+/* TX LIST */
+.tx-list-title { font-size:13px; font-weight:900; color:var(--brown); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.tx-wrap { background:white; border:3px solid var(--brown); border-radius:18px; box-shadow:4px 4px 0 var(--brown); overflow:hidden; }
+.tx-item { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:2px solid #FAF5ED; animation:slideIn 0.25s ease; }
+.tx-item:last-child { border-bottom:none; }
+@keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.tx-icon { font-size:22px; flex-shrink:0; }
+.tx-info { flex:1; min-width:0; }
+.tx-note { font-size:13px; font-weight:900; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tx-date { font-family:'Nunito',sans-serif; font-size:10px; color:#aaa; font-weight:700; margin-top:2px; }
+.tx-amount { font-family:'Nunito','Noto Sans TC',sans-serif; font-size:17px; font-weight:900; flex-shrink:0; }
+.tx-amount.income { color:#2E7D32; }
+.tx-amount.expense { color:#C62828; }
+.tx-del { background:none; border:none; font-size:18px; cursor:pointer; opacity:0.3; padding:4px; flex-shrink:0; }
+.tx-del:hover { opacity:1; }
+.tx-empty { padding:32px 20px; text-align:center; font-size:13px; font-weight:900; color:#bbb; }
+
+/* TOAST */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--brown); color:#FFF9C4; padding:11px 24px; border-radius:30px; font-family:'Architects Daughter',sans-serif; font-size:13px; font-weight:900; z-index:9999; white-space:nowrap; border:2.5px solid #FFF9C4; box-shadow:4px 4px 0 rgba(0,0,0,0.2); opacity:0; transition:opacity 0.3s; pointer-events:none; }
+.toast.show { opacity:1; }
+
+/* FOOTER */
+.footer { background:#EDE0CE; border-top:3px solid var(--brown); padding:12px; text-align:center; font-size:12px; font-weight:900; color:#8A7360; letter-spacing:2px; position:relative; }
+.footer .f-side { position:absolute; top:50%; transform:translateY(-50%); }
+.footer .f-left { left:14px; }
+.footer .f-right { right:14px; }
+
+/* Loading overlay */
+.loading-overlay { position:fixed; inset:0; background:rgba(250,245,237,0.92); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9998; font-family:'Architects Daughter',sans-serif; font-weight:900; font-size:16px; color:var(--brown); gap:12px; }
+.loading-spinner { font-size:40px; animation:spin 1.2s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── CALENDAR ── */
+.cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.cal-nav-btn { background:#FFF2CC; border:2.5px solid var(--brown); border-radius:12px; padding:8px 14px; font-family:inherit; font-size:18px; font-weight:900; cursor:pointer; box-shadow:3px 3px 0 var(--brown); transition:all 0.1s; color:var(--brown); }
+.cal-nav-btn:active { transform:translate(2px,2px); box-shadow:none; }
+.cal-month-label { font-family:'Nunito',sans-serif; font-size:20px; font-weight:900; color:var(--brown); text-align:center; }
+.cal-year-label { font-size:11px; color:#aaa; font-weight:700; text-align:center; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-dow { text-align:center; font-size:11px; font-weight:900; color:#9E8A78; padding:4px 0 6px; }
+.cal-dow.weekend { color:#E53935; }
+.cal-cell { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:3px 2px 2px; border-radius:10px; cursor:pointer; background:white; border:2px solid #EDE0CE; position:relative; transition:all 0.12s; min-height:40px; }
+.cal-cell:active { transform:scale(0.93); }
+.cal-cell.empty { background:transparent; border-color:transparent; cursor:default; pointer-events:none; }
+.cal-cell.today { background:#E53935; border-color:#B71C1C; box-shadow:3px 3px 0 #B71C1C; }
+.cal-cell.today .cal-day-num { color:white !important; }
+.cal-cell.has-event { border-color:#FF9800; background:#FFF8E1; }
+.cal-cell.today.has-event { background:#E53935; border-color:#B71C1C; }
+.cal-cell.weekend-cell .cal-day-num { color:#E53935; }
+.cal-day-num { font-family:'Nunito',sans-serif; font-size:13px; font-weight:900; line-height:1; }
+.cal-dot-row { display:flex; gap:2px; flex-wrap:wrap; justify-content:center; margin-top:2px; }
+.cal-dot { width:5px; height:5px; border-radius:50%; background:#FF9800; flex-shrink:0; }
+.cal-cell.today .cal-dot { background:white; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:flex-end; justify-content:center; z-index:500; animation:fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal-box { background:var(--bg); border:4px solid var(--brown); border-radius:28px 28px 0 0; padding:20px 18px 32px; width:100%; max-width:420px; box-shadow:0 -6px 0 var(--brown); animation:slideUp 0.25s ease; max-height:80vh; overflow-y:auto; }
+@keyframes slideUp { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-title { font-size:18px; font-weight:900; color:var(--brown); margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
+.modal-close { background:#FFCDD2; border:2px solid var(--brown); border-radius:10px; padding:4px 10px; font-size:16px; cursor:pointer; font-family:inherit; font-weight:900; box-shadow:2px 2px 0 var(--brown); }
+.modal-close:active { transform:translate(2px,2px); box-shadow:none; }
+.event-list { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.event-item { display:flex; align-items:center; gap:10px; background:white; border:2.5px solid var(--brown); border-radius:14px; padding:10px 12px; box-shadow:3px 3px 0 var(--brown); animation:slideIn 0.2s ease; }
+.event-emoji { font-size:20px; flex-shrink:0; }
+.event-text { flex:1; font-size:13px; font-weight:900; color:#333; }
+.event-del { background:none; border:none; font-size:16px; cursor:pointer; opacity:0.3; padding:2px; }
+.event-del:hover { opacity:1; }
+.event-add-row { display:flex; gap:8px; }
+.event-input { flex:1; -webkit-appearance:none; appearance:none; border:2.5px solid var(--brown); border-radius:12px; padding:11px 12px; font-size:14px; font-family:inherit; font-weight:700; color:#333; background:#FFFDE7; outline:none; box-shadow:3px 3px 0 #E0D4C0; }
+.event-input:focus { border-color:#E53935; background:#fff; }
+.event-add-btn { background:#C8E6C9; border:2.5px solid var(--brown); border-radius:12px; padding:11px 14px; font-size:20px; cursor:pointer; box-shadow:3px 3px 0 var(--brown); transition:all 0.1s; }
+.event-add-btn:active { transform:translate(2px,2px); box-shadow:none; }
+.event-empty { text-align:center; font-size:13px; font-weight:900; color:#ccc; padding:12px 0; }
+
+/* ── MONTHLY EVENTS LIST ── */
+.month-events-title { font-size:14px; font-weight:900; color:var(--brown); display:flex; align-items:center; gap:6px; margin:16px 0 10px; }
+.month-event-group { background:white; border:3px solid var(--brown); border-radius:18px; box-shadow:4px 4px 0 var(--brown); overflow:hidden; margin-bottom:12px; }
+.month-event-day-header { display:flex; align-items:center; gap:8px; padding:9px 14px; background:#FFF8E1; border-bottom:2px solid #EDE0CE; }
+.month-event-day-num { font-family:'Nunito',sans-serif; font-size:18px; font-weight:900; color:var(--brown); min-width:28px; }
+.month-event-day-label { font-size:11px; font-weight:900; color:#aaa; }
+.month-event-day-header.today-header .month-event-day-num { color:#E53935; }
+.month-event-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:2px solid #FAF5ED; }
+.month-event-row:last-child { border-bottom:none; }
+.month-event-emoji { font-size:18px; flex-shrink:0; }
+.month-event-text { flex:1; font-size:13px; font-weight:900; color:#333; }
+.month-event-del { background:none; border:none; font-size:15px; cursor:pointer; opacity:0.3; padding:4px; flex-shrink:0; }
+.month-event-del:hover { opacity:1; }
+.month-events-empty { text-align:center; padding:24px; font-size:13px; font-weight:900; color:#ccc; background:white; border:2.5px dashed #D0C4B0; border-radius:18px; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="car-fleet">
+      <span id="car0" class="car-unlocked" title="🚒 一直都有！">🚒</span>
+      <span id="car1" class="car-locked"   title="存滿$100解鎖">🚓</span>
+      <span style="font-size:36px">🏆</span>
+      <span id="car2" class="car-locked"   title="存滿$200解鎖">🚑</span>
+      <span id="car3" class="car-locked"   title="存滿$300解鎖">🚛</span>
+    </div>
+    <div class="header-title">Benny的零用錢小金庫</div>
+    <div class="road">
+      <div class="road-lines" id="roadLines"></div>
+      <div class="road-car" id="roadCar">🚒</div>
+    </div>
+  </div>
+
+  <!-- SYNC STATUS -->
+  <div class="sync-bar">
+    <div><span class="sync-dot" id="syncDot"></span><span id="syncText">連線中…</span></div>
+    <div style="font-size:10px;color:#aaa">全家共用同一份資料 👨‍👩‍👦</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn tab-active-tasks" id="btn-tasks"  onclick="switchTab('tasks')">📋 挑戰表</button>
+    <button class="tab-btn tab-inactive"     id="btn-wallet" onclick="switchTab('wallet')">🪙 小金庫</button>
+    <button class="tab-btn tab-inactive"     id="btn-cal"    onclick="switchTab('cal')">📅 行事曆</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- TAB: TASKS -->
+    <div id="tab-tasks" class="tab-pane active">
+      <div class="report-card">
+        <div>
+          <div class="report-label">✨ 星期日要結算囉！</div>
+          <div class="report-hint">算出獎金，複製發給爸爸媽媽！</div>
+        </div>
+        <button class="report-btn" onclick="copyReport()">📲 送出成果</button>
+      </div>
+      <div class="section-title">1. 每週常態任務 <span style="font-size:10px;color:#aaa;font-weight:700">星期日結算</span></div>
+      <div id="weekly-tasks-container"></div>
+      <div class="section-title" style="margin-top:4px">2. 每月大魔王挑戰 <span style="font-size:10px;color:#aaa;font-weight:700">月底結算</span></div>
+      <div class="monthly-card" id="monthly-card" onclick="toggleMonthly()">
+        <div style="font-size:38px">🌙</div>
+        <div class="monthly-info">
+          <div class="monthly-tag">夜間勇敢挑戰</div>
+          <div class="monthly-title">一個月都沒有尿床</div>
+        </div>
+        <div class="monthly-right">
+          <div class="monthly-reward">$30元</div>
+          <div class="monthly-check" id="monthly-check"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: WALLET -->
+    <div id="tab-wallet" class="tab-pane">
+      <div class="balance-card">
+        <div class="balance-label">💰 我目前的小金庫總額 💰</div>
+        <div class="balance-num"><sup>$</sup><span id="balance-display">0</span><span style="font-size:18px;font-weight:700;font-family:'Nunito',sans-serif"> 元</span></div>
+        <div class="goal-box">
+          <div class="goal-row">
+            <span>🎯 目標：<input class="goal-input" id="goal-name" value="買新玩具車車" onchange="saveGoal()"></span>
+            <span>$<input class="goal-num-input" id="goal-target" type="number" value="300" onchange="saveGoal()">元</span>
+          </div>
+          <div class="progress-track"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+          <div class="goal-status" id="goal-status">還差 $300 元加油唷！</div>
+        </div>
+      </div>
+      <div class="mini-stats">
+        <div class="mini-stat income"><div class="mini-stat-label">⬆ 總收入</div><div class="mini-stat-val" id="total-income">$0</div></div>
+        <div class="mini-stat expense"><div class="mini-stat-label">⬇ 總支出</div><div class="mini-stat-val" id="total-expense">$0</div></div>
+      </div>
+      <div class="form-card">
+        <label class="field-label">📅 日期</label>
+        <div class="field-wrap"><input class="crayon-input" type="date" id="tx-date"></div>
+        <label class="field-label">🪙 金額（元）</label>
+        <div class="field-wrap"><input class="crayon-input" type="number" id="tx-amount" placeholder="請輸入金額" min="0"></div>
+        <label class="field-label">📝 記帳明細</label>
+        <div class="field-wrap" style="margin-bottom:14px"><input class="crayon-input" type="text" id="tx-note" placeholder="寫下做了什麼（例如：買糖果 🍭）"></div>
+        <div class="btn-row">
+          <button class="crayon-btn btn-income"  onclick="addTx('income')">➕ 我存錢 💰</button>
+          <button class="crayon-btn btn-expense" onclick="addTx('expense')">➖ 我花錢 🍦</button>
+        </div>
+      </div>
+      <div class="tx-list-title">📜 我的小金庫存提明細</div>
+      <div class="tx-wrap" id="tx-list"></div>
+    </div>
+
+
+    <!-- TAB: CALENDAR -->
+    <div id="tab-cal" class="tab-pane">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">◀</button>
+        <div>
+          <div class="cal-month-label" id="cal-month-label">5月</div>
+          <div class="cal-year-label" id="cal-year-label">2026年</div>
+        </div>
+        <button class="cal-nav-btn" onclick="calNext()">▶</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="month-events-title" id="month-events-title">📋 本月記事</div>
+      <div id="month-events-list"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="f-side f-left">💪</span>
+    加油！你是最棒的！
+    <span class="f-side f-right">🌟</span>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">
+      <span id="modal-date-label">📅 5月1日</span>
+      <button class="modal-close" onclick="closeModal()">✕ 關閉</button>
+    </div>
+    <div class="event-list" id="event-list"></div>
+    <div class="event-add-row">
+      <input class="event-input" id="event-input" placeholder="新增待辦事項… 🚒" onkeydown="if(event.key==='Enter')addEvent()">
+      <button class="event-add-btn" onclick="addEvent()">➕</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+// ─── FIREBASE CONFIG ──────────────────────────────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZMnknm3T2cmyL_dJaMltx0vmofnI500g",
+  authDomain: "benny-money.firebaseapp.com",
+  projectId: "benny-money",
+  storageBucket: "benny-money.firebasestorage.app",
+  messagingSenderId: "773635971188",
+  appId: "1:773635971188:web:a7211f55372b202d4d9921",
+  databaseURL: "https://benny-money-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+const DB_PATH = 'benny-v1';
+
+// ─── ROAD ─────────────────────────────────────────────────────────────────────
+const roadCars = ['🚒','🚓','🚑','🚛','🚜'];
+let roadCarIdx = 0;
+const roadLinesEl = document.getElementById('roadLines');
+for (let i = 0; i < 20; i++) {
+  const d = document.createElement('div'); d.className = 'road-line';
+  roadLinesEl.appendChild(d);
+}
+function rotateRoadCar() {
+  document.getElementById('roadCar').textContent = roadCars[roadCarIdx];
+  roadCarIdx = (roadCarIdx+1) % roadCars.length;
+}
+rotateRoadCar();
+setInterval(rotateRoadCar, 2500);
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── SYNC STATUS ──────────────────────────────────────────────────────────────
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + state;
+  txt.textContent = msg;
+}
+
+// ─── STORAGE (Firebase Realtime Database) ────────────────────────────────────
+async function cloudGet(key) {
+  try {
+    const snap = await get(child(ref(db), `${DB_PATH}/${key}`));
+    return snap.exists() ? snap.val() : null;
+  } catch(e) { console.error('cloudGet err', e); return null; }
+}
+async function cloudSet(key, val) {
+  try {
+    await set(ref(db, `${DB_PATH}/${key}`), val);
+  } catch(e) { console.error('cloudSet err', e); }
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const daysLabel = ['一','二','三','四','五','六','日'];
+const taskDefs = [
+  { id:1, emoji:'🚒', title:'JOJO 閱讀',    desc:'每週六前，主動且認真完成進度',  reward:10, threshold:3, textColor:'#7F6000', borderColor:'#D6B23C' },
+  { id:2, emoji:'🚓', title:'JOJO 數學',    desc:'每週六前，主動且認真完成進度',  reward:10, threshold:3, textColor:'#385723', borderColor:'#70AD47' },
+  { id:3, emoji:'📝', title:'挑戰考卷',     desc:'一週完成三張考卷（內容不限）',  reward:10, threshold:3, textColor:'#843C0C', borderColor:'#ED7D31' },
+  { id:4, emoji:'⏰', title:'帥氣起床',     desc:'一週不賴床5次，且不用爸媽叫',  reward:20, threshold:5, textColor:'#7F6000', borderColor:'#D6B23C' },
+  { id:5, emoji:'🧼', title:'主動刷牙洗臉', desc:'一週7天，早晚都主動去盥洗',    reward:20, threshold:5, textColor:'#0C5460', borderColor:'#17A2B8' },
+];
+
+let tasks   = taskDefs.map(t=>({...t, days:[false,false,false,false,false,false,false]}));
+let monthly = false;
+let txs     = [];
+let goal    = { name:'買新玩具車車', target:300 };
+let saving  = false;
+
+// ─── LOAD ALL FROM CLOUD ──────────────────────────────────────────────────────
+async function loadAll() {
+  setSyncStatus('syncing','資料同步中…');
+  try {
+    const [t, m, tx, g, ce] = await Promise.all([
+      cloudGet('tasks'), cloudGet('monthly'), cloudGet('txs'), cloudGet('goal'), cloudGet('calEvents')
+    ]);
+    if (t)  tasks     = t;
+    if (m !== null) monthly = m;
+    if (tx) txs       = tx;
+    if (g)  goal      = g;
+    if (ce) calEvents = ce;
+    setSyncStatus('ok','已同步 ✓');
+  } catch {
+    setSyncStatus('err','離線模式');
+  }
+  document.getElementById('goal-name').value   = goal.name;
+  document.getElementById('goal-target').value = goal.target;
+  renderTasks(); renderMonthly(); renderWallet(); renderCal();
+}
+
+// ─── SAVE helpers ─────────────────────────────────────────────────────────────
+async function saveTasks()   { setSyncStatus('syncing','儲存中…'); await cloudSet('tasks',tasks);   setSyncStatus('ok','已同步 ✓'); }
+async function saveMonthly() { setSyncStatus('syncing','儲存中…'); await cloudSet('monthly',monthly);setSyncStatus('ok','已同步 ✓'); }
+async function saveTxs()     { setSyncStatus('syncing','儲存中…'); await cloudSet('txs',txs);       setSyncStatus('ok','已同步 ✓'); }
+async function saveGoalData(){ setSyncStatus('syncing','儲存中…'); await cloudSet('goal',goal);     setSyncStatus('ok','已同步 ✓'); }
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['tasks','wallet','cal'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('active', tab===id);
+  });
+  const bT=document.getElementById('btn-tasks'), bW=document.getElementById('btn-wallet'), bC=document.getElementById('btn-cal');
+  bT.className='tab-btn tab-inactive'; bW.className='tab-btn tab-inactive'; bC.className='tab-btn tab-inactive';
+  if (tab==='tasks')  { bT.className='tab-btn tab-active-tasks'; }
+  if (tab==='wallet') { bW.className='tab-btn tab-active-wallet'; renderWallet(); }
+  if (tab==='cal')    { bC.className='tab-btn tab-active-cal'; renderCal(); }
+}
+
+// ─── RENDER TASKS ─────────────────────────────────────────────────────────────
+function renderTasks() {
+  const c = document.getElementById('weekly-tasks-container');
+  c.innerHTML = '';
+  tasks.forEach(task => {
+    const doneCount = task.days.filter(Boolean).length;
+    const daysHtml  = task.days.map((checked, idx) => `
+      <button class="day-btn${checked?' checked':''}" onclick="toggleDay(${task.id},${idx})">
+        <span>${daysLabel[idx]}</span>
+        <div class="day-dot">${checked?'✓':''}</div>
+      </button>`).join('');
+    c.innerHTML += `
+      <div class="task-card">
+        <div class="task-header">
+          <span class="task-tag" style="color:${task.textColor};border-color:${task.borderColor}">${task.emoji} ${task.title}</span>
+          <span class="task-reward">💰 <span class="num">$${task.reward}</span>元</span>
+        </div>
+        <div class="task-desc">${task.desc}（已完成 <span class="num">${doneCount}/${task.threshold}</span> 天）</div>
+        <div class="day-grid">${daysHtml}</div>
+      </div>`;
+  });
+}
+
+async function toggleDay(taskId, dayIdx) {
+  tasks = tasks.map(t => {
+    if (t.id !== taskId) return t;
+    const days = [...t.days]; days[dayIdx] = !days[dayIdx];
+    return {...t, days};
+  });
+  renderTasks();
+  await saveTasks();
+}
+
+// ─── MONTHLY ──────────────────────────────────────────────────────────────────
+async function toggleMonthly() {
+  monthly = !monthly;
+  renderMonthly();
+  await saveMonthly();
+}
+function renderMonthly() {
+  document.getElementById('monthly-card').classList.toggle('done', monthly);
+  const ch = document.getElementById('monthly-check');
+  ch.classList.toggle('done', monthly);
+  ch.textContent = monthly ? '✓' : '';
+}
+
+// ─── WALLET ───────────────────────────────────────────────────────────────────
+function getBalance() { return txs.reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),0); }
+
+function renderWallet() {
+  const balance = getBalance();
+  const income  = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+
+  document.getElementById('balance-display').textContent = balance.toLocaleString();
+  document.getElementById('total-income').textContent    = '$'+income.toLocaleString();
+  document.getElementById('total-expense').textContent   = '$'+expense.toLocaleString();
+
+  const gTarget = parseInt(document.getElementById('goal-target').value)||300;
+  const pct     = Math.min(100, Math.max(0, balance/gTarget*100));
+  document.getElementById('progress-bar').style.width = pct+'%';
+  const gName = document.getElementById('goal-name').value || '目標';
+  const diff  = gTarget - balance;
+  const statusEl = document.getElementById('goal-status');
+  if (diff <= 0) {
+    statusEl.textContent  = `🎉 太讚了！你存夠錢買【${gName}】囉！🎁`;
+    statusEl.style.color  = '#2E7D32'; statusEl.style.fontWeight = '900';
+  } else {
+    statusEl.textContent  = `還差 $${diff} 元就能買【${gName}】！加油！💪`;
+    statusEl.style.color  = '#555'; statusEl.style.fontWeight = '700';
+  }
+
+  // cars unlock
+  [100,200,300].forEach((thr,i) => {
+    const el = document.getElementById('car'+(i+1));
+    const wasLocked = el.classList.contains('car-locked');
+    el.classList.toggle('car-locked',   balance < thr);
+    el.classList.toggle('car-unlocked', balance >= thr);
+    if (wasLocked && balance >= thr) showToast('🎉 解鎖新車車啦！');
+  });
+
+  // tx list
+  const list = document.getElementById('tx-list');
+  if (!txs.length) {
+    list.innerHTML = '<div class="tx-empty">🚒<br>還沒有記錄喔！<br>快來記第一筆帳吧！</div>';
+    return;
+  }
+  list.innerHTML = txs.map(tx => `
+    <div class="tx-item" style="border-left:5px solid ${tx.type==='income'?'#66BB6A':'#EF5350'}">
+      <div class="tx-icon">${tx.emoji}</div>
+      <div class="tx-info">
+        <div class="tx-note">${tx.note}</div>
+        <div class="tx-date num">${tx.date}</div>
+      </div>
+      <div class="tx-amount ${tx.type}">${tx.type==='income'?'+':'-'}$<span class="num">${tx.amount.toLocaleString()}</span></div>
+      <button class="tx-del" onclick="deleteTx(${tx.id})">🗑️</button>
+    </div>`).join('');
+}
+
+async function saveGoal() {
+  goal = { name: document.getElementById('goal-name').value, target: parseInt(document.getElementById('goal-target').value)||300 };
+  renderWallet();
+  await saveGoalData();
+}
+
+async function addTx(type) {
+  const dateEl = document.getElementById('tx-date');
+  const amtEl  = document.getElementById('tx-amount');
+  const noteEl = document.getElementById('tx-note');
+  const date   = dateEl.value;
+  const amount = parseFloat(amtEl.value);
+  const note   = noteEl.value.trim();
+  if (!date)          { showToast('⚠️ 請填日期！'); return; }
+  if (!amount||amount<=0) { showToast('⚠️ 請輸入大於0的金額！'); return; }
+  if (!note)          { showToast('⚠️ 請寫下一點點明細！'); return; }
+  const emojiMatch = note.match(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})/u);
+  const emoji = emojiMatch ? emojiMatch[0] : (type==='income'?'💰':'🧸');
+  txs.unshift({ id:Date.now(), type, date, amount, note, emoji });
+  amtEl.value=''; noteEl.value='';
+  renderWallet();
+  await saveTxs();
+  showToast(type==='income'?`💰 存入 $${amount} 元！`:`💸 記錄支出 $${amount} 元！`);
+}
+
+async function deleteTx(id) {
+  if (!confirm('確定要刪掉這筆記錄嗎？')) return;
+  txs = txs.filter(t=>t.id!==id);
+  renderWallet();
+  await saveTxs();
+  showToast('🗑️ 已刪除這筆記帳！');
+}
+
+// ─── REPORT ───────────────────────────────────────────────────────────────────
+function copyReport() {
+  let reward = 0;
+  let text = `✨【本週自主能力挑戰成果結算】✨\n`;
+  text += `📅 結算日期：${new Date().toLocaleDateString('zh-TW')}\n`;
+  text += `───────────────────\n`;
+  tasks.forEach(t => {
+    const done = t.days.filter(Boolean).length;
+    const pass = done >= t.threshold;
+    if (pass) reward += t.reward;
+    text += `${pass?'✅':'❌'} ${t.title}：完成${done}天（${pass?'達成！':'加油！'}）\n`;
+  });
+  if (monthly) { text += `👑 月大魔王：成功！(+$30元)\n`; reward+=30; }
+  else           text += `🌙 月大魔王：繼續加油！\n`;
+  text += `───────────────────\n`;
+  text += `💰 本週共獲得：$${reward} 元！\n`;
+  text += `🚒 爸爸媽媽請幫我存入小金庫！謝謝！🚓`;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(()=>showToast('📋 成果已複製！貼到LINE給爸媽吧！'));
+  } else {
+    const ta=document.createElement('textarea'); ta.value=text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta); showToast('📋 成果已複製！貼到LINE給爸媽吧！');
+  }
+}
+
+
+// ─── CALENDAR ─────────────────────────────────────────────────────────────────
+const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+let calEvents = {}; // { 'YYYY-MM-DD': [{id, text}] }
+let calYear, calMonth; // currently viewed
+let selectedDate = null;
+
+function calInit() {
+  const now = new Date();
+  calYear  = now.getFullYear();
+  calMonth = now.getMonth(); // 0-indexed
+}
+
+function renderCal() {
+  const now   = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  document.getElementById('cal-month-label').textContent = MONTHS_ZH[calMonth];
+  document.getElementById('cal-year-label').textContent  = calYear + '年';
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Day-of-week headers (Mon first)
+  const dowLabels = ['一','二','三','四','五','六','日'];
+  dowLabels.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow' + (i>=5?' weekend':'');
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  // first day of month (Mon=0)
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+  const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  for (let i = 0; i < startOffset; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-cell empty';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayOfWeek = new Date(calYear, calMonth, d).getDay(); // 0=Sun,6=Sat
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isToday   = dateStr === todayStr;
+    const events    = calEvents[dateStr] || [];
+
+    const cell = document.createElement('div');
+    let cls = 'cal-cell';
+    if (isToday)   cls += ' today';
+    if (events.length) cls += ' has-event';
+    if (isWeekend) cls += ' weekend-cell';
+    cell.className = cls;
+    cell.onclick = () => openModal(dateStr);
+
+    const numEl = document.createElement('div');
+    numEl.className = 'cal-day-num';
+    numEl.textContent = d;
+    cell.appendChild(numEl);
+
+    if (events.length) {
+      const dotRow = document.createElement('div');
+      dotRow.className = 'cal-dot-row';
+      events.slice(0,3).forEach(() => {
+        const dot = document.createElement('div'); dot.className='cal-dot';
+        dotRow.appendChild(dot);
+      });
+      cell.appendChild(dotRow);
+    }
+
+    grid.appendChild(cell);
+  }
+  renderMonthlyEvents();
+}
+
+function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCal(); }
+function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCal(); }
+
+// ─── EVENT MODAL ──────────────────────────────────────────────────────────────
+function openModal(dateStr) {
+  selectedDate = dateStr;
+  const [y,m,d] = dateStr.split('-');
+  document.getElementById('modal-date-label').textContent = `📅 ${parseInt(m)}月${parseInt(d)}日`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('event-input').value = '';
+  renderEventList();
+  setTimeout(() => document.getElementById('event-input').focus(), 300);
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').style.display = 'none';
+  selectedDate = null;
+}
+
+function renderEventList() {
+  const list = document.getElementById('event-list');
+  const events = calEvents[selectedDate] || [];
+  if (!events.length) {
+    list.innerHTML = '<div class="event-empty">🚒 今天還沒有計畫，快加一個！</div>';
+    return;
+  }
+  const eventEmojis = ['🚒','🚓','🚑','📚','✏️','🎨','🏃','🍎','🌟','🎮'];
+  list.innerHTML = events.map((ev, i) => `
+    <div class="event-item">
+      <div class="event-emoji">${eventEmojis[i % eventEmojis.length]}</div>
+      <div class="event-text">${ev.text}</div>
+      <button class="event-del" onclick="deleteEvent('${ev.id}')">🗑️</button>
+    </div>`).join('');
+}
+
+async function addEvent() {
+  const input = document.getElementById('event-input');
+  const text  = input.value.trim();
+  if (!text) { showToast('⚠️ 請輸入待辦事項！'); return; }
+  if (!calEvents[selectedDate]) calEvents[selectedDate] = [];
+  calEvents[selectedDate].push({ id: Date.now().toString(), text });
+  input.value = '';
+  renderEventList();
+  renderCal();
+  await saveCalEvents();
+  showToast('✅ 加入行事曆！');
+}
+
+async function deleteEvent(evId) {
+  if (!selectedDate) return;
+  calEvents[selectedDate] = (calEvents[selectedDate]||[]).filter(e=>e.id!==evId);
+  if (!calEvents[selectedDate].length) delete calEvents[selectedDate];
+  renderEventList();
+  renderCal();
+  await saveCalEvents();
+}
+
+async function saveCalEvents() {
+  setSyncStatus('syncing','儲存中…');
+  await cloudSet('calEvents', calEvents);
+  setSyncStatus('ok','已同步 ✓');
+}
+
+// ─── MONTHLY EVENTS LIST ──────────────────────────────────────────────────────
+function renderMonthlyEvents() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const MONTHS_ZH2 = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const DOW_ZH = ['日','一','二','三','四','五','六'];
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const eventEmojis = ['🚒','🚓','🚑','📚','✏️','🎨','🏃','🍎','🌟','🎮'];
+
+  // title
+  const titleEl = document.getElementById('month-events-title');
+  titleEl.textContent = `📋 ${MONTHS_ZH2[calMonth]} 記事`;
+
+  const container = document.getElementById('month-events-list');
+  let html = '';
+  let hasAny = false;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const events  = calEvents[dateStr];
+    if (!events || !events.length) continue;
+    hasAny = true;
+
+    const dow     = new Date(calYear, calMonth, d).getDay();
+    const isToday = dateStr === todayStr;
+    const isWkend = dow === 0 || dow === 6;
+    const dayNumColor = isToday ? '#E53935' : (isWkend ? '#E53935' : 'var(--brown)');
+
+    html += `<div class="month-event-group">
+      <div class="month-event-day-header${isToday?' today-header':''}">
+        <span class="month-event-day-num" style="color:${dayNumColor}">${d}</span>
+        <span class="month-event-day-label">（${DOW_ZH[dow]}）${isToday?'  ← 今天':''}</span>
+      </div>`;
+
+    events.forEach((ev, i) => {
+      html += `<div class="month-event-row">
+        <div class="month-event-emoji">${eventEmojis[i % eventEmojis.length]}</div>
+        <div class="month-event-text">${ev.text}</div>
+        <button class="month-event-del" onclick="deleteEventFromList('${dateStr}','${ev.id}')">🗑️</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (!hasAny) {
+    html = '<div class="month-events-empty">🚒 這個月還沒有記事<br>點日期格子來新增吧！</div>';
+  }
+  container.innerHTML = html;
+}
+
+async function deleteEventFromList(dateStr, evId) {
+  if (!confirm('確定要刪掉這筆記事嗎？')) return;
+  calEvents[dateStr] = (calEvents[dateStr]||[]).filter(e=>e.id!==evId);
+  if (!calEvents[dateStr].length) delete calEvents[dateStr];
+  renderCal();
+  await saveCalEvents();
+  showToast('🗑️ 已刪除記事！');
+}
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+calInit();
+loadAll();
+
+// 每 30 秒自動重新整理（讓其他家人的更新能同步進來）
+setInterval(loadAll, 30000);
+</script>
+<!-- end firebase module -->
+</body>
+</html>
